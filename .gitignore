@@ -1,0 +1,9 @@
+.Rhistory
+*.Rproj
+scr*
+slides.pdf
+*.rds
+*.rda
+fig/*.svg
+
+.Rproj.user
