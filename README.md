@@ -8,8 +8,9 @@ This repository contains code to generate the slides for a presentation "Sporstc
 The slides are produced from R Markdown (`slides.Rmd`), which requires that you have LaTeX, beamer, and the following R packages installed from CRAN:
 
 ``` r
-install.packages(c("ggplot2, tidyr, dplyr, rstan, modeest, 
-                   viridis, flux, Lahman, bayesplot", "devtools", "knitr"))
+install.packages(c("ggplot2", "tidyr", "dplyr", "rstan", 
+                   "modeest", "rmarkdown", "viridis", "flux", 
+                   "Lahman", "bayesplot", "devtools", "knitr"))
 ```
 
 The basketball data are scraped using an in-development package [`bbr`](https://www.github.com/mbjoseph/bbr), which can be installed directly from GitHub using devtools:
@@ -21,7 +22,7 @@ devtools::install_github("mbjoseph/bbr")
 Once the dependencies are satisfied, knit the document with:
 
 ``` r
-knitr::knit("slides.Rmd", "slides.pdf")
+rmarkdown::render("slides.Rmd")
 ```
 
 If this runs successfully, you will see a pdf in the top level directory: `slides.pdf`.
