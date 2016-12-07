@@ -1,6 +1,5 @@
 .Rhistory
 *.Rproj
-scr*
 slides.pdf
 *.rds
 *.rda
