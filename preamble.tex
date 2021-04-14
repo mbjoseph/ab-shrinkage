@@ -1,0 +1,79 @@
+
+\usetheme{Boadilla}
+
+\usepackage[T1]{fontenc}
+\usepackage{sfmath}
+\renewcommand{\familydefault}{\sfdefault}
+\DeclareSymbolFont{operators}{OT1}{\sfdefault}{m}{n}
+\SetSymbolFont{operators}{bold}{OT1}{\sfdefault}{b}{n}
+\usefonttheme{structurebold}
+\setbeamerfont{alerted text}{series=\bfseries}
+\setbeamerfont{section in toc}{series=\mdseries}
+\setbeamerfont{frametitle}{size=\Large}
+\setbeamerfont{title}{size=\LARGE}
+\setbeamerfont{date}{size=\small}
+\usepackage{helvet}
+
+\definecolor{UniBlue}{RGB}{7,51,10}
+\definecolor{AlertOrange}{RGB}{255,76,0}
+\definecolor{AlmostBlack}{RGB}{38,38,38}
+\setbeamercolor{normal text}{fg=AlmostBlack}
+\setbeamercolor{structure}{fg=UniBlue}
+\setbeamercolor{block title}{fg=UniBlue!50!black}
+\setbeamercolor{alerted text}{fg=AlertOrange}
+\mode<beamer>{
+    \definecolor{BackGroundGray}{RGB}{254,254,254}
+    \setbeamercolor{background canvas}{bg=BackGroundGray}
+}
+
+\setbeamertemplate{blocks}[rounded]
+\useinnertheme{circles}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\setbeamertemplate{title page}{
+    \vspace{2.5em}
+    {\usebeamerfont{title} \usebeamercolor[fg]{title} \inserttitle \par}
+    {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle \par}
+    \vspace{1.5em}
+    \begin{flushright}
+        \usebeamerfont{author}\insertauthor\par
+        \usebeamerfont{institute}\insertinstitute \par
+        \vspace{3em}
+        \usebeamerfont{date}\insertdate\par
+        \usebeamercolor[fg]{titlegraphic}\inserttitlegraphic
+    \end{flushright}
+}
+
+\usepackage{algorithm}
+\usepackage[noend]{algorithmic}
+\algsetup{linenosize=\color{fg!50}\footnotesize}
+\renewcommand\algorithmicdo{:}
+\renewcommand\algorithmicthen{:}
+\renewcommand\algorithmicrequire{\textbf{Input:}}
+\renewcommand\algorithmicensure{\textbf{Output:}}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes,arrows}
+
+\theoremstyle{definition}
+\newenvironment{mythm}{\begin{alertblock}{定理}}{\end{alertblock}}
+
+\AtBeginSection[]{
+    \frame{\tableofcontents[currentsection, hideallsubsections]}
+}
+
+\institute{SilviaTerra\\Data Science Team}
+
+% custom diagrams
+\usetikzlibrary{shapes.geometric, arrows}
+\tikzstyle{whitebox} = [rectangle, rounded corners, minimum width=2cm, minimum height=1cm,text centered, draw=black, fill=white]
+\tikzstyle{box} = [rectangle, rounded corners, minimum width=2cm, minimum height=1cm,text centered, draw=black, fill=UniBlue!50!white]
+\tikzstyle{par} = [rectangle, rounded corners, minimum width=2cm, minimum height=1cm,text centered, draw=black, fill=AlertOrange!50!white]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+\tikzstyle{neuron}=[circle,fill=black!25,minimum size=17pt,inner sep=0pt]
+
+
+% custom footnote symbology
+\usepackage[symbol]{footmisc}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}

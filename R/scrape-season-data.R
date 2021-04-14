@@ -2,7 +2,7 @@
 if (!file.exists("data/all_years.csv")) {
   library(bbr)
   library(dplyr)
-  years <- 1951:2016
+  years <- 1951:2019
   d <- list()
   for (i in seq_along(years)) {
     d[[i]] <- get_season(years[i])
@@ -10,5 +10,5 @@ if (!file.exists("data/all_years.csv")) {
   d %>%
     bind_rows() %>%
     write.csv("data/all_years.csv", row.names = FALSE)
-} 
+}
 d <- read.csv("data/all_years.csv", stringsAsFactors = FALSE)

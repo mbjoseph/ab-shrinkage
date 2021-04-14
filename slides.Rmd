@@ -1,183 +1,180 @@
 ---
-title: "It seems like sportscasters don't get shrinkage"
-subtitle: "But they should, and you can too!"
-output:
+title: "Battle of the birds"
+subtitle: "NBA free throw edition"
+output: 
   beamer_presentation:
-    latex_engine: xelatex
-    fig_caption: false
-    fig_crop: false
-author: |
-  | **Max Joseph** 
-  | Twitter: @mxwlj
-  | GitHub: mbjoseph
-  | https://github.com/mbjoseph/ab-shrinkage
-geometry: margin=1in
-header-includes: 
-- \usepackage{graphicx}
-- \beamertemplatenavigationsymbolsempty
-- \usepackage{fontspec}
-- \setmainfont{Source Serif Pro}
-- \usepackage{blindtext}
-- \linespread{0.95833}
-- \setsansfont{Source Sans Pro}
-- \setmonofont{Source Code Pro}
-- \usepackage{xcolor}
-- \definecolor{foreground}{RGB}{0,0,0}
-- \definecolor{background}{RGB}{255,255,255}
-- \definecolor{title}{RGB}{51, 153, 255}
-- \definecolor{gray}{RGB}{155,155,155}
-- \definecolor{subtitle}{RGB}{192,0,255}
-- \definecolor{hilight}{RGB}{102,255,204}
-- \definecolor{vhilight}{RGB}{255,111,207}
-- \setbeamercolor{titlelike}{fg=title}
-- \setbeamercolor{subtitle}{fg=subtitle}
-- \setbeamercolor{institute}{fg=gray}
-- \setbeamercolor{normal text}{fg=foreground,bg=background}
-- \setbeamercolor{local structure}{fg=title}
-- \setbeamertemplate{frametitle}{\begin{centering} \insertframetitle \par \end{centering}}
-- \setmonofont[Scale=MatchLowercase]{Courier}
-- \setmonofont[Scale=0.8]{Courier}
-- \usepackage[normalem]{ulem}
-- \setbeamerfont{frametitle}{size=\Huge}
-- \setbeamertemplate{itemize/enumerate body begin}{\Large}
+    includes: 
+      in_header: "preamble.tex"
+author: Max Joseph
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, 
                       fig.width = 4.5, fig.height = 4, 
-                      fig.align = "center", 
                       warning = FALSE)
 library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(rstan)
-library(modeest)
-library(viridis)
 library(flux)
-library(Lahman)
-theme_set(theme_minimal(base_size = 15))
+theme_set(theme_minimal(base_size = 15) + 
+            theme(panel.grid.minor = element_blank()))
 ```
 
+## Larry Bird (3960/4471) 
+
+![](fig/larry_bird.jpg){width=50%}
+
+
+
+## Jerry Bird (1/1) 
+
+```{r dl-images}
+jerry_path <- here::here("fig", "jerry_bird.jpg")
+if (!file.exists(jerry_path)) {
+  download.file("http://www.bigbluehistory.net/bb/Graphics/Players/jerry_bird.jpg", 
+                jerry_path)
+}
+
+larry_path <- here::here("fig", "larry_bird.jpg")
+if (!file.exists(larry_path)) {
+  download.file("https://vault.si.com/.image/c_limit%2Ccs_srgb%2Cfl_progressive%2Ch_2000%2Cq_auto:good%2Cw_2000/MTY5MTAxMjk4MDI5NzY2MTA3/1984-0709-larry-bird-090004608jpg.jpg", 
+                larry_path)
+}
+```
+
+![](fig/jerry_bird.jpg){width=50%}
 
 ## 
 
-Jerry Bird (1/1) 
-$\quad \quad \quad \quad \quad \quad \quad \quad$ 
 Larry Bird (3960/4471) 
+$\quad \quad \quad \quad \quad \quad \quad \quad$ 
+Jerry Bird (1/1) 
 
-![](http://www.bigbluehistory.net/bb/Graphics/Players/jerry_bird4.jpg) 
-![](http://sports.mearsonlineauctions.com/ItemImages/000018/01d54f29-3cb1-4de9-b4b4-db9f20b47eb4_lg.jpeg) 
+![](fig/larry_bird.jpg){height=200px}$\quad \quad \quad \quad \quad \quad$
+![](fig/jerry_bird.jpg){height=200px}
 
 
-## Maximum likelihood
+## 
 
 ```{r, fig.height = 4, fig.width = 6, message = FALSE}
 pseq <- seq(0, 1, .001)
 
-lb <- data.frame(p = pseq, 
-                py = dbinom(3960, 4471, pseq), 
+lb <- data.frame(p = pseq,
+                py = dbinom(3960, 4471, pseq),
                 player = "Larry Bird (3960/4471)")
 
-jb <- data.frame(p = pseq, 
-                py = dbinom(1, 1, pseq), 
+jb <- data.frame(p = pseq,
+                py = dbinom(1, 1, pseq),
                 player = "Jerry Bird (1/1)")
 
-full_join(lb, jb) %>%
-  ggplot(aes(x = p, y = py)) + 
-  facet_wrap(~ player, scales = "free") + 
-  geom_line() + 
-  ylab("Likelihood") + 
-  xlab("Shooting ability\np(make freethrow)") + 
-  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in"))
+p <- full_join(lb, jb) %>%
+  ggplot(aes(x = p, y = py)) +
+  facet_wrap(~ player, scales = "free") +
+  ylab("Pr(the data)") +
+  xlab("Pr(make freethrow)") +
+  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in"), 
+        axis.text.y = element_blank(), 
+        panel.grid.major.y = element_blank())
+p
 ```
 
 
-## 
+##
+
+```{r, fig.height = 4, fig.width = 6, message = FALSE}
+p +  geom_line()
+```
+
+## All NBA players' free throw data
 
 ```{r, warning = FALSE}
-source("R/scrape-season-data.R")
+source(here::here("R", "scrape-season-data.R"))
 
 summ_d <- d %>%
   mutate(player = gsub("\\*", "", player)) %>%
   group_by(player) %>%
-  summarize(fta = sum(fta), 
+  summarize(fta = sum(fta),
             ftm = sum(ft)) %>%
   filter(fta > 0)
 
-summ_d %>%
-  ggplot(aes(x = fta, y = ftm / fta, group = player)) + 
-  geom_point(size = .3, alpha = .2) + 
-  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) + 
-  xlab("Sample size") + 
-  ylab(expression(paste("Shooting ability"))) + 
-  geom_point(data = subset(summ_d, 
-                           player %in% c("Larry Bird", "Jerry Bird")), 
-             aes(color = player), size = 2) + 
+p <- summ_d %>%
+  ggplot(aes(x = fta, y = ftm / fta, group = player)) +
+  geom_point(size = .3, alpha = .2) +
+  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
+  xlab("Sample size") +
+  ylab(expression(paste("Fraction shots made"))) +
+  geom_point(data = subset(summ_d,
+                           player %in% c("Larry Bird", "Jerry Bird")),
+             aes(color = player), size = 2) +
   scale_color_manual(values = c("red", "dodgerblue"), "")
+p
 ```
 
+
+## Clearly this is rubbish
+
+```{r}
+p
+```
 
 
 ## Bayesian inference
 
-\begin{center}
-\includegraphics{fig/param_pop.pdf}
-\end{center}
+$$[\theta \mid y] \propto [y \mid \theta] \times [\theta] $$
 
-
-## 
+##
 
 ```{r, message = FALSE, warning = FALSE, results='hide', fig.keep='none'}
-source("R/fit-models.R")
+source(here::here("R", "fit-models.R"))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-modes <- apply(post$theta, 2, FUN = function(x) mlv(x, method = "Venter")$M) %>%
+medians <- apply(post$theta, 2, FUN = median) %>%
   plogis()
-summ_d$post_mode <- modes
+summ_d$post_mode <- medians
 summ_d <- summ_d %>%
   mutate(ML = ftm / fta)
 
 summ_d %>%
-  ggplot(aes(x = fta, y = post_mode)) + 
-  geom_point(size = .3) + 
-  
-  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) + 
-  xlab("Sample size") + 
-  ylab(expression(paste("Shooting ability"))) + 
-  ylim(0, 1) + 
-  geom_point(data = subset(summ_d, 
-                           player %in% c("Larry Bird", "Jerry Bird")), 
-             aes(color = player), size = 2) + 
+  ggplot(aes(x = fta, y = post_mode)) +
+  geom_point(size = .3, alpha = 0.2) +
+  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
+  xlab("Sample size") +
+  ylab("Bayesian estimate") +
+  ylim(0, 1) +
+  geom_point(data = subset(summ_d,
+                           player %in% c("Larry Bird", "Jerry Bird")),
+             aes(color = player), size = 2) +
   scale_color_manual(values = c("red", "dodgerblue"), "")
 ```
 
 
-## 
+##
 
 
 ```{r, message=FALSE, warning=FALSE}
 long_d <- summ_d %>%
   gather(Method, Estimate, -player, -fta, -ftm)
 
-long_d %>% 
-  ggplot(aes(y = Estimate, 
-             x = as.numeric(factor(Method)), 
+long_d %>%
+  ggplot(aes(y = Estimate,
+             x = as.numeric(factor(Method)),
              group = player)) +
-  geom_line(alpha = .05) + 
-  xlim(1, 2)  + 
-  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) + 
-  scale_x_continuous(breaks = 1:2, 
-                     labels = c("Maximum Likelihood", "Bayes"), 
-                     name = "Method")  + 
-  geom_line(data = subset(long_d, 
-                           player %in% c("Larry Bird", "Jerry Bird")), 
-             aes(color = player), size = 1.5) + 
+  geom_line(alpha = .05) +
+  xlim(1, 2)  +
+  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
+  scale_x_continuous(breaks = 1:2,
+                     labels = c("Naive", "Bayes"),
+                     name = "Method")  +
+  geom_line(data = subset(long_d,
+                           player %in% c("Larry Bird", "Jerry Bird")),
+             aes(color = player), size = 1.5) +
   scale_color_manual(values = c("red", "dodgerblue"), "")
 ```
 
 
-## 
+##
 
 ```{r, fig.width = 6}
 ## Visualize shrinkage on a player by player basis
@@ -199,7 +196,7 @@ get_lik <- function(player_name, df) {
   p <- seq(0, 1, length.out = lo)
   d <- subset(df, player == player_name)
   lik_df <- data.frame(p = p, lik = dbinom(d$ftm, d$fta, p))
-  
+
   aucurve <- auc(x = lik_df$p, lik_df$lik)
   lik_df %>%
     mutate(Likelihood = lik / aucurve) %>%
@@ -210,7 +207,7 @@ get_post <- function(player_name, post, df) {
   theta <- post$theta[, df$player == player_name]
   den <- density(theta)
   post_df <- data.frame(logit_p = den$x, density = den$y) %>%
-    mutate(p = plogis(logit_p)) 
+    mutate(p = plogis(logit_p))
   aucurve <- auc(x = post_df$p, post_df$density)
   post_df %>%
     mutate(`Bayesian estimate` = density / aucurve) %>%
@@ -221,25 +218,25 @@ get_post <- function(player_name, post, df) {
 shrink_plot <- function(player_name, post, df) {
   n_shots <- subset(df, player == player_name)$fta
   made <- subset(df, player == player_name)$ft
-  title <- paste0(player_name, ": ", made, "/", 
+  title <- paste0(player_name, ": ", made, "/",
                   n_shots)
   prior <- get_prior(post = post)
   like <- get_lik(player_name, df = df)
   posterior <- get_post(player_name, post = post, df = df)
-  
+
   full_join(prior, like, by = "p") %>%
     full_join(posterior, by = "p") %>%
     gather(Quantity, value, -p, na.rm = TRUE) %>%
-    mutate(Quantity = factor(Quantity, 
+    mutate(Quantity = factor(Quantity,
                              levels = c("Prior", "Likelihood", "Bayesian estimate"))) %>%
-    ggplot(aes(x = p, y = value, color = Quantity)) + 
-    geom_line(size = 1) + 
-  theme(plot.margin = margin(.1, .2, .6, .2, unit = "in")) + 
-    theme(axis.text.y = element_blank(), 
-          axis.ticks.y = element_blank(), 
-          axis.title.y = element_blank()) + 
-    xlab("Shooting ability") + 
-    ggtitle(title) + 
+    ggplot(aes(x = p, y = value, color = Quantity)) +
+    geom_line(size = 1) +
+  theme(plot.margin = margin(.1, .2, .6, .2, unit = "in")) +
+    theme(axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title.y = element_blank()) +
+    xlab("Shooting ability") +
+    ggtitle(title) +
     scale_color_discrete("")
 }
 
@@ -247,103 +244,19 @@ shrink_plot("Larry Bird", post = post, df = summ_d)
 ```
 
 
-## 
+##
 
 ```{r, fig.width = 6}
 shrink_plot("Jerry Bird", post = post, df = summ_d)
 ```
 
-## 
-
-```{r, fig.width = 6, fig.height = 4}
-summ_d %>%
-  ggplot(aes(x = ML, y = post_mode, color = fta, group = player)) + 
-  geom_point(size = .5) + 
-  scale_color_viridis(option = "B", trans = "log", 
-                      breaks = c(1, 10, 100, 1000, 10000), 
-                      "# free throws") + 
-  
-  theme(plot.margin = margin(.1, .1, 1, .1, unit = "in")) + 
-
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") + 
-  xlab("MaxLik estimate") + 
-  ylim(0, 1) +
-  ylab("Bayesian estimate") + 
-  coord_equal() + 
-  theme(legend.title = element_text(size = 12, vjust = 5), 
-        legend.text = element_text(size = 10))  + 
-  geom_point(data = subset(summ_d, 
-                           player %in% c("Larry Bird", "Jerry Bird")), 
-             color = c("red", "dodgerblue"), size = 2)
-```
-
-
-##
-
-![](http://images.performgroup.com/di/library/sporting_news/71/f4/jason-kipnis-ws-110216-getty-ftrjpg_1i08mqq4uv4f01pe3hhkqvvmck.jpg?t=594512960&w=960&quality=70)
-
-
-##
-
-```{r, message=FALSE}
-
-# Create a sub-data frame for modern World Series play
-ws <- BattingPost %>%
-  filter(round == "WS" & yearID >= 1903) %>%
-  group_by(playerID) %>%
-  summarize(BA_ws = sum(H) / sum(AB)) %>%
-  select(playerID, BA_ws)
- 
-# Create one for regular season
-rs <- Batting %>%
-  filter(yearID >= 1903) %>%
-  group_by(playerID) %>%
-  summarize(BA = sum(H) / sum(AB)) %>%
-  select(playerID, BA)
-
-players_to_use <- intersect(ws$playerID, rs$playerID)
-
-ws <- ws %>%
-  filter(playerID %in% players_to_use)
-
-rs <- rs %>%
-  filter(playerID %in% players_to_use)
-
-d <- full_join(ws, rs)
-
-d %>%
-  ggplot(aes(x = BA_ws, y = BA)) + 
-  geom_point(size = .4, alpha = 0) + 
-  ylim(0, 1) + 
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") + 
-  ylab("Career batting average") + 
-  xlab("World Series batting average") + 
-  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) + 
-  coord_equal()
-```
-
-##
-
-```{r}
-d %>%
-  ggplot(aes(x = BA_ws, y = BA)) + 
-  geom_point(size = .4, alpha = 0.5) + 
-  ylim(0, 1) + 
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") + 
-  ylab("Career batting average") + 
-  xlab("World Series batting average") + 
-  theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) + 
-  coord_equal()
-```
 
 ## So what?
 
-Jerry Bird (1/1) 
-$\quad \quad \quad \quad \quad \quad \quad \quad$ 
-Larry Bird (3960/4471) 
+Jerry Bird (1/1)
 
-![](http://www.bigbluehistory.net/bb/Graphics/Players/jerry_bird4.jpg) 
-![](http://sports.mearsonlineauctions.com/ItemImages/000018/01d54f29-3cb1-4de9-b4b4-db9f20b47eb4_lg.jpeg)
+Larry Bird (3960/4471)
+
 
 
 ## Thank you
