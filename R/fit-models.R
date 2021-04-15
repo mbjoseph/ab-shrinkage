@@ -17,9 +17,9 @@ stan_d <- list(n = nrow(summ_d),
                k = summ_d$fta)
 
 # Compile and fit model ---------------------------------------------------
-rstan_options(auto_write = TRUE)
-mod <- stan_model("R/model.stan", verbose = TRUE)
 if (!file.exists("m_fit.rds")) {
+  rstan_options(auto_write = TRUE)
+  mod <- stan_model("R/model.stan", verbose = TRUE)
   fit <- sampling(object = mod, data = stan_d, cores = 4, chains = 4)
   write_rds(fit, "m_fit.rds")
 } else {

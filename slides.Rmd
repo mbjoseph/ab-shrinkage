@@ -15,8 +15,11 @@ knitr::opts_chunk$set(echo = FALSE,
 library(ggplot2)
 library(tidyr)
 library(dplyr)
+library(ggrepel)
+library(forcats)
 library(rstan)
 library(flux)
+options(tidyverse.quiet = TRUE)
 theme_set(theme_minimal(base_size = 15) + 
             theme(panel.grid.minor = element_blank()))
 ```
@@ -43,7 +46,7 @@ if (!file.exists(larry_path)) {
 }
 ```
 
-![](fig/jerry_bird.jpg){width=50%}
+![](fig/jerry_bird.jpg){width=45%}
 
 ## 
 
@@ -86,7 +89,7 @@ p
 p +  geom_line()
 ```
 
-## All NBA players' free throw data
+## Maximum likelihood favors Jerry Bird
 
 ```{r, warning = FALSE}
 source(here::here("R", "scrape-season-data.R"))
@@ -100,7 +103,7 @@ summ_d <- d %>%
 
 p <- summ_d %>%
   ggplot(aes(x = fta, y = ftm / fta, group = player)) +
-  geom_point(size = .3, alpha = .2) +
+  geom_point(size = .3, alpha = .1) +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
   xlab("Sample size") +
   ylab(expression(paste("Fraction shots made"))) +
@@ -119,15 +122,41 @@ p
 ```
 
 
-## Bayesian inference
+## How do we know this is rubbish?
 
-$$[\theta \mid y] \propto [y \mid \theta] \times [\theta] $$
+Prior information suggests:
 
-##
+$$\text{Pr}(p =1) = 0$$
+and also 
+
+$$\text{Pr}(p =0) = 0$$
+
+
+## Incorporating prior information
+
+Bayes' theorem
+
+$$\underbrace{[\theta \mid y]}_{\text{What we know}} \propto \underbrace{[\theta]}_{\text{What we knew}} \times \underbrace{[y \mid \theta]}_{\text{Likelihood}}$$
+
+## 
 
 ```{r, message = FALSE, warning = FALSE, results='hide', fig.keep='none'}
 source(here::here("R", "fit-models.R"))
 ```
+
+```{r, fig.height=3}
+n_iter <- length(post$mu)
+prior_df <- tibble(theta = plogis(rnorm(n_iter, post$mu, post$sigma)))
+ggplot(prior_df) +
+  geom_density(aes(x = theta), bw = .03) + 
+  xlab("Probability of making a free throw") + 
+  ylab("Prior density") + 
+  xlim(0, 1)
+```
+
+
+## Bayesian estimates favor Larry Bird
+
 
 ```{r, message=FALSE, warning=FALSE}
 medians <- apply(post$theta, 2, FUN = median) %>%
@@ -136,18 +165,37 @@ summ_d$post_mode <- medians
 summ_d <- summ_d %>%
   mutate(ML = ftm / fta)
 
-summ_d %>%
+bayes_plot <- summ_d %>%
   ggplot(aes(x = fta, y = post_mode)) +
-  geom_point(size = .3, alpha = 0.2) +
+  geom_point(size = .3, alpha = 0.1) +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
   xlab("Sample size") +
   ylab("Bayesian estimate") +
   ylim(0, 1) +
   geom_point(data = subset(summ_d,
                            player %in% c("Larry Bird", "Jerry Bird")),
-             aes(color = player), size = 2) +
+             aes(color = fct_rev(player)), size = 2) +
   scale_color_manual(values = c("red", "dodgerblue"), "")
+bayes_plot
 ```
+
+## Bayesian estimates favor Larry Bird
+
+```{r plot-extremes}
+n_plot <- 3
+best <- summ_d %>%
+  slice_max(post_mode, n=n_plot)
+worst <- summ_d %>%
+  slice_min(post_mode, n=n_plot)
+notables <- full_join(best, worst, 
+                      by = c("player", "fta", "ftm", "post_mode", "ML"))
+
+bayes_plot  + 
+  geom_point(data = notables) + 
+  geom_text_repel(data = notables, aes(label = player), size = 2)
+```
+
+
 
 
 ##
@@ -174,7 +222,7 @@ long_d %>%
 ```
 
 
-##
+## Jerry Bird (1/1) 
 
 ```{r, fig.width = 6}
 ## Visualize shrinkage on a player by player basis
@@ -218,8 +266,6 @@ get_post <- function(player_name, post, df) {
 shrink_plot <- function(player_name, post, df) {
   n_shots <- subset(df, player == player_name)$fta
   made <- subset(df, player == player_name)$ft
-  title <- paste0(player_name, ": ", made, "/",
-                  n_shots)
   prior <- get_prior(post = post)
   like <- get_lik(player_name, df = df)
   posterior <- get_post(player_name, post = post, df = df)
@@ -236,27 +282,29 @@ shrink_plot <- function(player_name, post, df) {
           axis.ticks.y = element_blank(),
           axis.title.y = element_blank()) +
     xlab("Shooting ability") +
-    ggtitle(title) +
     scale_color_discrete("")
 }
 
-shrink_plot("Larry Bird", post = post, df = summ_d)
-```
-
-
-##
-
-```{r, fig.width = 6}
 shrink_plot("Jerry Bird", post = post, df = summ_d)
 ```
 
 
-## So what?
+## Larry Bird (3960/4471) 
 
-Jerry Bird (1/1)
+```{r, fig.width = 6}
+shrink_plot("Larry Bird", post = post, df = summ_d)
+```
 
-Larry Bird (3960/4471)
 
+
+## 
+
+Larry Bird (3960/4471) 
+$\quad \quad \quad \quad > \quad \quad \quad \quad$ 
+Jerry Bird (1/1) 
+
+![](fig/larry_bird.jpg){height=200px}$\quad \quad \quad \quad \quad \quad$
+![](fig/jerry_bird.jpg){height=200px}
 
 
 ## Thank you
@@ -264,9 +312,4 @@ Larry Bird (3960/4471)
 **Data**
 
 - http://www.basketball-reference.com/
-- https://cran.r-project.org/package=Lahman
-
-**Code & slides**
-
-- https://github.com/mbjoseph/ab-shrinkage
 - https://github.com/mbjoseph/bbr
