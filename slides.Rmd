@@ -46,6 +46,12 @@ if (!file.exists(larry_path)) {
   download.file("https://vault.si.com/.image/c_limit%2Ccs_srgb%2Cfl_progressive%2Ch_2000%2Cq_auto:good%2Cw_2000/MTY5MTAxMjk4MDI5NzY2MTA3/1984-0709-larry-bird-090004608jpg.jpg", 
                 larry_path)
 }
+
+marv_path <- here::here("fig", "marv.jpg")
+if (!file.exists(marv_path)) {
+  download.file("https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Reggie_Miller_TNT.jpg/834px-Reggie_Miller_TNT.jpg", 
+                marv_path)
+}
 ```
 
 ![](fig/jerry_bird.jpg){width=45%}
@@ -122,7 +128,7 @@ summ_d <- d %>%
 
 p <- summ_d %>%
   ggplot(aes(x = fta, y = ftm / fta, group = player)) +
-  geom_point(size = .5, alpha = .3) +
+  geom_point(size = .5, alpha = .1) +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
   xlab("Sample size") +
   ylab("Pr(make freethrow)")
@@ -152,12 +158,13 @@ up
 
 Prior information suggests:
 
-$$\text{Pr}(p =1) = 0$$
+$$\text{Pr}(\text{never miss}) = 0$$
 
+"everybody misses"
 
 ## Incorporating prior information
 
-Bayes' theorem
+### Bayes' theorem
 
 $$\underbrace{[\theta \mid y]}_{\text{What we know}} \propto \underbrace{[\theta]}_{\text{What we knew}} \times \underbrace{[y \mid \theta]}_{\text{Likelihood}}$$
 
@@ -190,7 +197,7 @@ summ_d <- summ_d %>%
 
 bayes_plot <- summ_d %>%
   ggplot(aes(x = fta, y = post_mode)) +
-  geom_point(size = .5, alpha = 0.2, aes(group = player)) +
+  geom_point(size = .5, alpha = 0.1, aes(group = player)) +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
   xlab("Sample size") +
   ylab("Bayesian estimate") +
@@ -329,9 +336,13 @@ Jerry Bird (1/1)
 ![](fig/jerry_bird.jpg){height=200px}
 
 
-## Thank you
+## The problem with sportscasters
+
+![](fig/marv.jpg){height=200px}
+
+## End
 
 **Data**
 
-- http://www.basketball-reference.com/
 - https://github.com/mbjoseph/bbr
+- http://www.basketball-reference.com/
