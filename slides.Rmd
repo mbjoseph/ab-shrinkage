@@ -10,18 +10,20 @@ author: Max Joseph
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, 
-                      fig.width = 4.5, fig.height = 4, 
+                      fig.width = 6, fig.height = 4, 
                       warning = FALSE)
 library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(ggrepel)
+library(ggthemes)
 library(forcats)
 library(rstan)
 library(flux)
 options(tidyverse.quiet = TRUE)
-theme_set(theme_minimal(base_size = 15) + 
-            theme(panel.grid.minor = element_blank()))
+theme_set(theme_tufte(base_size = 15) + 
+            theme(text=element_text(size=16,  family="sans"),
+                  panel.grid.minor = element_blank()))
 ```
 
 ## Larry Bird (3960/4471) 
@@ -71,14 +73,18 @@ jb <- data.frame(p = pseq,
                 py = dbinom(1, 1, pseq),
                 player = "Jerry Bird (1/1)")
 
-p <- full_join(lb, jb) %>%
+b <- full_join(lb, jb)
+
+p <- b %>%
   ggplot(aes(x = p, y = py)) +
   facet_wrap(~ player, scales = "free") +
   ylab("Pr(the data)") +
   xlab("Pr(make freethrow)") +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in"), 
         axis.text.y = element_blank(), 
-        panel.grid.major.y = element_blank())
+        axis.ticks.y = element_blank(),
+        panel.grid.major.y = element_blank()) + 
+  scale_x_continuous(labels = c("0", "0.25", "0.5", "0.75", "1"))
 p
 ```
 
@@ -86,10 +92,23 @@ p
 ##
 
 ```{r, fig.height = 4, fig.width = 6, message = FALSE}
-p +  geom_line()
+p +  geom_line() + 
+  geom_vline(data = b %>%
+               group_by(player) %>%
+               slice_max(py), 
+             linetype = "dashed", 
+             aes(xintercept = p), 
+             size = .5, 
+             alpha = .5)
 ```
 
-## Maximum likelihood favors Jerry Bird
+## Naive approach
+
+Pr(make freethrow) = Fraction shots made
+
+
+
+## All NBA players 1951-2019
 
 ```{r, warning = FALSE}
 source(here::here("R", "scrape-season-data.R"))
@@ -103,22 +122,29 @@ summ_d <- d %>%
 
 p <- summ_d %>%
   ggplot(aes(x = fta, y = ftm / fta, group = player)) +
-  geom_point(size = .3, alpha = .1) +
+  geom_point(size = .5, alpha = .3) +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
   xlab("Sample size") +
-  ylab(expression(paste("Fraction shots made"))) +
+  ylab("Pr(make freethrow)")
+p
+```
+
+## Maximum likelihood favors Jerry Bird
+
+```{r}
+up <- p +
   geom_point(data = subset(summ_d,
                            player %in% c("Larry Bird", "Jerry Bird")),
              aes(color = player), size = 2) +
   scale_color_manual(values = c("red", "dodgerblue"), "")
-p
+up
 ```
 
 
 ## Clearly this is rubbish
 
 ```{r}
-p
+up
 ```
 
 
@@ -127,9 +153,6 @@ p
 Prior information suggests:
 
 $$\text{Pr}(p =1) = 0$$
-and also 
-
-$$\text{Pr}(p =0) = 0$$
 
 
 ## Incorporating prior information
@@ -149,7 +172,7 @@ n_iter <- length(post$mu)
 prior_df <- tibble(theta = plogis(rnorm(n_iter, post$mu, post$sigma)))
 ggplot(prior_df) +
   geom_density(aes(x = theta), bw = .03) + 
-  xlab("Probability of making a free throw") + 
+  xlab("Pr(make free throw)") + 
   ylab("Prior density") + 
   xlim(0, 1)
 ```
@@ -167,7 +190,7 @@ summ_d <- summ_d %>%
 
 bayes_plot <- summ_d %>%
   ggplot(aes(x = fta, y = post_mode)) +
-  geom_point(size = .3, alpha = 0.1) +
+  geom_point(size = .5, alpha = 0.2, aes(group = player)) +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
   xlab("Sample size") +
   ylab("Bayesian estimate") +
@@ -179,7 +202,7 @@ bayes_plot <- summ_d %>%
 bayes_plot
 ```
 
-## Bayesian estimates favor Larry Bird
+## Bayesian estimates smell better
 
 ```{r plot-extremes}
 n_plot <- 3
@@ -213,8 +236,8 @@ long_d %>%
   xlim(1, 2)  +
   theme(plot.margin = margin(.1, .2, 1, .2, unit = "in")) +
   scale_x_continuous(breaks = 1:2,
-                     labels = c("Naive", "Bayes"),
-                     name = "Method")  +
+                     labels = c("Maximum\nlikelihood", "Bayes"),
+                     name = "")  +
   geom_line(data = subset(long_d,
                            player %in% c("Larry Bird", "Jerry Bird")),
              aes(color = player), size = 1.5) +
@@ -258,14 +281,13 @@ get_post <- function(player_name, post, df) {
     mutate(p = plogis(logit_p))
   aucurve <- auc(x = post_df$p, post_df$density)
   post_df %>%
-    mutate(`Bayesian estimate` = density / aucurve) %>%
-    select(p, `Bayesian estimate`)
+    mutate(`Posterior` = density / aucurve) %>%
+    select(p, `Posterior`)
 }
 
 
 shrink_plot <- function(player_name, post, df) {
   n_shots <- subset(df, player == player_name)$fta
-  made <- subset(df, player == player_name)$ft
   prior <- get_prior(post = post)
   like <- get_lik(player_name, df = df)
   posterior <- get_post(player_name, post = post, df = df)
@@ -274,7 +296,7 @@ shrink_plot <- function(player_name, post, df) {
     full_join(posterior, by = "p") %>%
     gather(Quantity, value, -p, na.rm = TRUE) %>%
     mutate(Quantity = factor(Quantity,
-                             levels = c("Prior", "Likelihood", "Bayesian estimate"))) %>%
+                             levels = c("Prior", "Likelihood", "Posterior"))) %>%
     ggplot(aes(x = p, y = value, color = Quantity)) +
     geom_line(size = 1) +
   theme(plot.margin = margin(.1, .2, .6, .2, unit = "in")) +
